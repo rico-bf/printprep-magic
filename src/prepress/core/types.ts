@@ -61,8 +61,8 @@ export interface PdfInspection {
   valid: boolean;
   parseError?: string;
   pageCount: number;
-  mediaBox?: PageBox;
-  trimBox?: PageBox;
+  mediaBox?: PageBox | undefined;
+  trimBox?: PageBox | undefined;
   /** OCG names registered in /OCProperties /OCGs, in document order. */
   ocgNames: string[];
   /** Any OCG object found anywhere in the document (also unregistered ones). */
