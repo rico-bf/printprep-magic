@@ -146,7 +146,7 @@ export async function generatePrintReadyPdf({
   config,
 }: GenerateInput): Promise<PrepressResult> {
   const logs: LogEntry[] = [];
-  const log = (event: string, data?: Record<string, unknown>) =>
+  const log = (event: string, data?: Record<string, string | number | boolean | null>) =>
     logs.push(data === undefined ? { at: nowIso(), event } : { at: nowIso(), event, data });
 
   const checks: ValidationCheck[] = [];
