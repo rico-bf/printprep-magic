@@ -97,6 +97,13 @@ export interface PrepressError {
   message: string;
 }
 
+export interface GoldenComparisonRow {
+  property: string;
+  matches: boolean;
+  generated: string;
+  golden: string;
+}
+
 export interface LogEntry {
   at: string;
   event: string;
