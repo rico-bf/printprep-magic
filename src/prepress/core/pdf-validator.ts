@@ -148,6 +148,23 @@ export function validateMaster(config: TemplateConfig, master: PdfInspection): V
     });
   }
 
+  if (master.illustratorPrivateData.length === 0) {
+    checks.push(pass("master_no_illustrator_private_data", "Master zonder Illustrator private editing data"));
+  } else {
+    checks.push(
+      fail(
+        "master_no_illustrator_private_data",
+        "Master zonder Illustrator private editing data",
+        true,
+        master.illustratorPrivateData.join(", "),
+      ),
+    );
+    errors.push({
+      code: PrepressErrorCode.ILLUSTRATOR_PRIVATE_DATA_PRESENT,
+      message: `Master bevat Illustrator private editing/round-trip data: ${master.illustratorPrivateData.join(", ")}`,
+    });
+  }
+
   return { checks, errors };
 }
 

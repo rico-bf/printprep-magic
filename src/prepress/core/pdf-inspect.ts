@@ -306,6 +306,51 @@ export function collectAllOcgNames(doc: PDFDocument): string[] {
   return names;
 }
 
+/**
+ * Detects Illustrator private editing/round-trip data only. Regular Illustrator
+ * metadata (/Creator, XMP, OCG /Usage /CreatorInfo) is deliberately ignored.
+ */
+export function collectIllustratorPrivateData(doc: PDFDocument): string[] {
+  const findings = new Set<string>();
+  const inspectDict = (dict: PDFDict) => {
+    for (const [key, value] of dict.entries()) {
+      const keyName = key.asString().slice(1);
+      if (keyName === "AIPDFPrivateData" || keyName.startsWith("AIPDFPrivateData")) {
+        findings.add(`/${keyName}`);
+        continue;
+      }
+      if (keyName !== "PieceInfo") continue;
+      const pieceInfo =
+        value instanceof PDFDict
+          ? value
+          : value instanceof PDFRef
+            ? (doc.context.lookup(value) as unknown)
+            : undefined;
+      const pieceDict =
+        pieceInfo instanceof PDFDict
+          ? pieceInfo
+          : pieceInfo instanceof PDFStream
+            ? pieceInfo.dict
+            : undefined;
+      if (!pieceDict) continue;
+      for (const [pieceKey] of pieceDict.entries()) {
+        const app = pieceKey.asString().slice(1);
+        if (/illustrator/i.test(app) || /^AI/.test(app)) {
+          findings.add(`/PieceInfo /${app}`);
+        }
+      }
+    }
+  };
+
+  const catalog = doc.catalog;
+  inspectDict(catalog);
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    if (obj instanceof PDFDict) inspectDict(obj);
+    else if (obj instanceof PDFStream) inspectDict(obj.dict);
+  }
+  return [...findings];
+}
+
 export async function inspectPdf(bytes: Uint8Array): Promise<PdfInspection> {
   const empty: PdfInspection = {
     valid: false,
@@ -322,6 +367,7 @@ export async function inspectPdf(bytes: Uint8Array): Promise<PdfInspection> {
     xObjects: {},
     layerSignatures: {},
     contentLength: 0,
+    illustratorPrivateData: [],
   };
 
   if (!hasPdfMagicBytes(bytes)) {
@@ -450,5 +496,6 @@ export async function inspectPdf(bytes: Uint8Array): Promise<PdfInspection> {
     xObjects,
     layerSignatures,
     contentLength: content.length,
+    illustratorPrivateData: collectIllustratorPrivateData(doc),
   };
 }
