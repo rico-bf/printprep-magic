@@ -429,6 +429,17 @@ function analyzeArtwork(
   return analysis;
 }
 
+function alternateDetail(info: ColorSpaceInfo | undefined): string {
+  if (!info) return "Separation niet gevonden";
+  if (info.alternateTint === undefined) {
+    return "Tint transform niet betrouwbaar te evalueren (geen type 2 functie)";
+  }
+  const tint = info.alternateTint.map((v) => Math.round(v * 1000) / 1000).join(", ");
+  return `Alternate ${info.alternateFamily ?? "?"} bij tint 1.0 = [${tint}]${
+    info.alternateHex ? `, indicatief ${info.alternateHex}` : ""
+  } — ICC-afhankelijk, niet betrouwbaar vergelijkbaar met een Illustrator-hex`;
+}
+
 /* --------------------------------------------------------------- reporting */
 
 function scoreComplexity(pathSegments: number): V2Complexity["pdfComplexityScore"] {
@@ -614,7 +625,7 @@ export async function runSleeveManagerValidation(
       "white_alternate_color",
       `Alternatieve kleur White ≈ ${sleeveManagerV2Config.whiteAlternateHex}`,
       "NOT_VERIFIABLE",
-      "Tint transform niet betrouwbaar te evalueren (geen type 2 functie)",
+      alternateDetail(whiteSeparation?.info),
     );
   }
 
@@ -699,7 +710,7 @@ export async function runSleeveManagerValidation(
       "stans_alternate_color",
       `Alternatieve kleur Stans ≈ ${sleeveManagerV2Config.stansAlternateHex}`,
       "NOT_VERIFIABLE",
-      "Tint transform niet betrouwbaar te evalueren",
+      alternateDetail(stansSeparation?.info),
     );
   }
 
