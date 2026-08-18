@@ -4,8 +4,6 @@ import { generatePrintReadyPdf } from "./core/pdf-engine";
 import { getTemplateConfig } from "./core/template-config";
 import type { PrepressResult } from "./core/types";
 import type { MasterProvider, StorageAdapter } from "./ports";
-// --- optional SleeveManager Validation V2 (read-only, non-blocking) ---
-import type { SleeveManagerValidation } from "./validation2/sleevemanager-types";
 
 export interface PrepressServiceDeps {
   storage: StorageAdapter;
@@ -26,8 +24,6 @@ export type PrepressResponse = Omit<PrepressResult, "outputBytes"> & {
   outputPath?: string;
   downloadUrl?: string;
   downloadExpiresInSeconds?: number;
-  /** Optional, non-blocking analysis layer. Never influences `status`. */
-  validation2?: SleeveManagerValidation;
 };
 
 function failure(templateId: string, code: string, message: string): PrepressResponse {
@@ -97,23 +93,11 @@ export async function runPrepress(
   await deps.storage.write(outputPath, outputBytes, "application/pdf");
   const downloadUrl = await deps.storage.createTemporaryUrl(outputPath, ttl);
 
-  // --- optional SleeveManager Validation V2: single call, never blocking ---
-  let validation2: SleeveManagerValidation = { enabled: false };
-  try {
-    const { isSleeveManagerV2Enabled, runSleeveManagerValidation } = await import("./validation2");
-    if (isSleeveManagerV2Enabled()) {
-      validation2 = await runSleeveManagerValidation(outputBytes, config);
-    }
-  } catch {
-    validation2 = { enabled: false };
-  }
-
   return {
     ...rest,
     outputFilename,
     outputPath,
     downloadUrl,
     downloadExpiresInSeconds: ttl,
-    validation2,
   };
 }

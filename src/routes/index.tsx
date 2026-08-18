@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-// --- optional SleeveManager Validation V2 UI (removable) ---
-import type { V2CheckStatus } from "@/prepress/validation2/sleevemanager-types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -50,20 +48,6 @@ function StatusPill({ status }: { status: "PASS" | "FAIL" }) {
       {status}
     </Badge>
   );
-}
-
-/** Validation 2 only — experimental, non-blocking. */
-function V2Pill({ status }: { status: V2CheckStatus | "PASS" | "WARNING" | "FAIL" }) {
-  const label = status === "NOT_VERIFIABLE" ? "NIET VAST TE STELLEN" : status;
-  const className =
-    status === "PASS"
-      ? "border-transparent bg-emerald-600 text-white"
-      : status === "FAIL"
-        ? "border-transparent bg-destructive text-destructive-foreground"
-        : status === "WARNING"
-          ? "border-transparent bg-amber-500 text-black"
-          : "border-dashed border-muted-foreground/60 bg-muted text-muted-foreground";
-  return <Badge className={`font-mono text-[11px] ${className}`}>{label}</Badge>;
 }
 
 function Index() {
@@ -206,55 +190,6 @@ function Index() {
                 ))}
               </ul>
             </details>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {result?.validation2?.enabled ? (
-        <Card className="mt-8 border-dashed">
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <CardTitle>Validatie 2 – SleeveManager</CardTitle>
-                <CardDescription>
-                  {result.validation2.name} — experimenteel, niet blokkerend. Alleen inspectie, geen
-                  correcties. De download blijft beschikbaar zolang validatie 1 PASS is.
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[11px]">
-                  Experimenteel – niet blokkerend
-                </Badge>
-                <V2Pill status={result.validation2.status} />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ul className="divide-y divide-border">
-              {result.validation2.checks.map((check) => (
-                <li key={check.key} className="flex items-start justify-between gap-4 py-2.5">
-                  <div>
-                    <p className="text-sm font-medium">{check.label}</p>
-                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                      {check.key}
-                      {check.detail ? ` · ${check.detail}` : ""}
-                    </p>
-                  </div>
-                  <V2Pill status={check.status} />
-                </li>
-              ))}
-            </ul>
-
-            <div className="rounded-md border border-border p-4 text-xs text-muted-foreground">
-              <p className="mb-1 font-medium text-foreground">Complexiteit (informatief)</p>
-              <p className="font-mono">
-                score {result.validation2.complexity.pdfComplexityScore} · {result.validation2.complexity.fileSizeMb} MB ·
-                pathSegments {result.validation2.complexity.pathSegments} · images{" "}
-                {result.validation2.complexity.imageXObjects} · forms{" "}
-                {result.validation2.complexity.formXObjects}
-              </p>
-              <p className="mt-2">{result.validation2.complexity.note}</p>
-            </div>
           </CardContent>
         </Card>
       ) : null}
