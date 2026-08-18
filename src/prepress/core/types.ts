@@ -7,6 +7,8 @@ export interface TemplateConfig {
   id: string;
   name: string;
   masterFile: string;
+  /** Human readable master version, e.g. "v3". */
+  masterVersion: string;
   masterStoragePath: string;
   layers: {
     dieCut: string;
@@ -80,6 +82,12 @@ export interface PdfInspection {
   layerSignatures: Record<string, LayerSignature>;
   /** Raw decoded first-page content stream length in bytes. */
   contentLength: number;
+  /**
+   * Illustrator private editing/round-trip structures found in the document
+   * (e.g. "/PieceInfo /Illustrator", "AIPDFPrivateData"). Normal Illustrator
+   * metadata (Creator, XMP, OCG /Usage /CreatorInfo) is NOT included.
+   */
+  illustratorPrivateData: string[];
 }
 
 export type CheckStatus = "PASS" | "FAIL";
@@ -126,6 +134,7 @@ export interface ValidationSummary {
   artwork_scaled: boolean;
   master_content_preserved: boolean;
   no_extra_ocg: boolean;
+  no_illustrator_private_data: boolean;
 }
 
 export interface PrepressResult {

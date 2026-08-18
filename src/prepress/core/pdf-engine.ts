@@ -52,6 +52,8 @@ function summarize(checks: ValidationCheck[]): ValidationSummary {
     artwork_scaled: ok("output_artwork_not_scaled"),
     master_content_preserved: allLayerContentOk,
     no_extra_ocg: ok("output_no_extra_ocg"),
+    no_illustrator_private_data:
+      ok("master_no_illustrator_private_data") && ok("output_no_illustrator_private_data"),
   };
 }
 
@@ -120,6 +122,44 @@ function remapArtworkOptionalContent(
   }
 }
 
+/**
+ * Removes Illustrator private editing/round-trip data (e.g. `/PieceInfo /Illustrator`,
+ * `AIPDFPrivateData*`) that travels along with an embedded artwork PDF. Only these
+ * private structures are dropped; normal metadata and all drawing content stay intact.
+ */
+function stripIllustratorPrivateData(doc: Awaited<ReturnType<typeof loadPdf>>): number {
+  let removed = 0;
+  const clean = (dict: PDFDict) => {
+    for (const [key, value] of dict.entries()) {
+      const name = key.asString().slice(1);
+      if (name.startsWith("AIPDFPrivateData")) {
+        dict.delete(key);
+        removed += 1;
+        continue;
+      }
+      if (name !== "PieceInfo") continue;
+      const resolved = value instanceof PDFRef ? doc.context.lookup(value) : value;
+      const pieceDict =
+        resolved instanceof PDFStream ? resolved.dict : resolved instanceof PDFDict ? resolved : undefined;
+      if (!pieceDict) continue;
+      for (const [pieceKey] of pieceDict.entries()) {
+        const app = pieceKey.asString().slice(1);
+        if (/illustrator/i.test(app) || /^AI/.test(app)) {
+          pieceDict.delete(pieceKey);
+          removed += 1;
+        }
+      }
+      if ([...pieceDict.entries()].length === 0) dict.delete(key);
+    }
+  };
+  clean(doc.catalog);
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    if (obj instanceof PDFDict) clean(obj);
+    else if (obj instanceof PDFStream) clean(obj.dict);
+  }
+  return removed;
+}
+
 /** Removes optional-content dictionaries that are not registered in the master. */
 function dropUnregisteredOcgs(
   doc: Awaited<ReturnType<typeof loadPdf>>,
@@ -152,7 +192,14 @@ export async function generatePrintReadyPdf({
   const checks: ValidationCheck[] = [];
   const errors: PrepressError[] = [];
 
-  log("start", { templateId: config.id, masterBytes: masterBytes.length, artworkBytes: artworkBytes.length });
+  log("start", {
+    templateId: config.id,
+    masterVersion: config.masterVersion,
+    masterFile: config.masterFile,
+    masterStoragePath: config.masterStoragePath,
+    masterBytes: masterBytes.length,
+    artworkBytes: artworkBytes.length,
+  });
 
   const masterInspection = await inspectPdf(masterBytes);
   const masterOutcome = validateMaster(config, masterInspection);
@@ -200,6 +247,9 @@ export async function generatePrintReadyPdf({
     remapArtworkOptionalContent(doc, embedded.ref, artworkOcgRef);
     const dropped = dropUnregisteredOcgs(doc, allowedOcgKeys);
     log("ocg_remap", { droppedOptionalContentObjects: dropped.length });
+
+    const removedPrivateData = stripIllustratorPrivateData(doc);
+    log("illustrator_private_data_stripped", { entries: removedPrivateData });
 
     const xObjectName = page.node.newXObject("Artwork", embedded.ref);
     const artworkMatrix = [1, 0, 0, 1, 0, 0];

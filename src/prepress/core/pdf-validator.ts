@@ -148,6 +148,23 @@ export function validateMaster(config: TemplateConfig, master: PdfInspection): V
     });
   }
 
+  if (master.illustratorPrivateData.length === 0) {
+    checks.push(pass("master_no_illustrator_private_data", "Master zonder Illustrator private editing data"));
+  } else {
+    checks.push(
+      fail(
+        "master_no_illustrator_private_data",
+        "Master zonder Illustrator private editing data",
+        true,
+        master.illustratorPrivateData.join(", "),
+      ),
+    );
+    errors.push({
+      code: PrepressErrorCode.ILLUSTRATOR_PRIVATE_DATA_PRESENT,
+      message: `Master bevat Illustrator private editing/round-trip data: ${master.illustratorPrivateData.join(", ")}`,
+    });
+  }
+
   return { checks, errors };
 }
 
@@ -454,6 +471,43 @@ export function validateOutput({
         message: `Technische mastercontent van "${comparison.layer}" is gewijzigd: ${comparison.differences.join("; ")}`,
       });
     }
+  }
+
+  const missingSeparations = master.separations.filter((sep) => !output.separations.includes(sep));
+  if (missingSeparations.length === 0) {
+    checks.push(
+      pass(
+        "output_technical_separations",
+        "Technische separations behouden",
+        true,
+        master.separations.join(", "),
+      ),
+    );
+  } else {
+    checks.push(
+      fail("output_technical_separations", "Technische separations behouden", true, missingSeparations.join(", ")),
+    );
+    errors.push({
+      code: PrepressErrorCode.OUTPUT_MASTER_CONTENT_CHANGED,
+      message: `Separations ontbreken in de output: ${missingSeparations.join(", ")}`,
+    });
+  }
+
+  if (output.illustratorPrivateData.length === 0) {
+    checks.push(pass("output_no_illustrator_private_data", "Geen Illustrator private editing data in output"));
+  } else {
+    checks.push(
+      fail(
+        "output_no_illustrator_private_data",
+        "Geen Illustrator private editing data in output",
+        true,
+        output.illustratorPrivateData.join(", "),
+      ),
+    );
+    errors.push({
+      code: PrepressErrorCode.ILLUSTRATOR_PRIVATE_DATA_PRESENT,
+      message: `Output bevat Illustrator private editing/round-trip data: ${output.illustratorPrivateData.join(", ")}`,
+    });
   }
 
   return { checks, errors };

@@ -45,6 +45,7 @@ function failure(templateId: string, code: string, message: string): PrepressRes
       artwork_scaled: false,
       master_content_preserved: false,
       no_extra_ocg: false,
+      no_illustrator_private_data: false,
     },
     errors: [{ code, message }],
     logs: [{ at: new Date().toISOString(), event: "aborted", data: { code } }],

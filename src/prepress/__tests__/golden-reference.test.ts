@@ -12,12 +12,12 @@ import { CAVA_293X237 } from "../core/template-config";
  * production preflight.
  *
  * Place the three PDFs in ./fixtures (or set PREPRESS_FIXTURES_DIR):
- *   MASTER_TEMPLATE_CAVA_TEST_v2.pdf
+ *   MASTER_TEMPLATE_CAVA_TEST_v3.pdf
  *   Sleeve-Cava-Expivi-alleen_artwork.pdf
  *   Sleeve-Cava-Expivi.pdf   (golden reference)
  */
 const dir = process.env["PREPRESS_FIXTURES_DIR"] ?? join(process.cwd(), "fixtures");
-const masterPath = join(dir, "MASTER_TEMPLATE_CAVA_TEST_v2.pdf");
+const masterPath = join(dir, "MASTER_TEMPLATE_CAVA_TEST_v3.pdf");
 const artworkPath = join(dir, "Sleeve-Cava-Expivi-alleen_artwork.pdf");
 const goldenPath = join(dir, "Sleeve-Cava-Expivi.pdf");
 const haveFixtures = [masterPath, artworkPath, goldenPath].every((p) => existsSync(p));
