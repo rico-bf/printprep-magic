@@ -134,6 +134,7 @@ export interface ValidationSummary {
   artwork_scaled: boolean;
   master_content_preserved: boolean;
   no_extra_ocg: boolean;
+  no_illustrator_private_data: boolean;
 }
 
 export interface PrepressResult {

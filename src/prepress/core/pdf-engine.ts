@@ -52,6 +52,8 @@ function summarize(checks: ValidationCheck[]): ValidationSummary {
     artwork_scaled: ok("output_artwork_not_scaled"),
     master_content_preserved: allLayerContentOk,
     no_extra_ocg: ok("output_no_extra_ocg"),
+    no_illustrator_private_data:
+      ok("master_no_illustrator_private_data") && ok("output_no_illustrator_private_data"),
   };
 }
 
@@ -152,7 +154,14 @@ export async function generatePrintReadyPdf({
   const checks: ValidationCheck[] = [];
   const errors: PrepressError[] = [];
 
-  log("start", { templateId: config.id, masterBytes: masterBytes.length, artworkBytes: artworkBytes.length });
+  log("start", {
+    templateId: config.id,
+    masterVersion: config.masterVersion,
+    masterFile: config.masterFile,
+    masterStoragePath: config.masterStoragePath,
+    masterBytes: masterBytes.length,
+    artworkBytes: artworkBytes.length,
+  });
 
   const masterInspection = await inspectPdf(masterBytes);
   const masterOutcome = validateMaster(config, masterInspection);
