@@ -209,6 +209,55 @@ function Index() {
           </CardContent>
         </Card>
       ) : null}
+
+      {result?.validation2?.enabled ? (
+        <Card className="mt-8 border-dashed">
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <CardTitle>Validatie 2 – SleeveManager</CardTitle>
+                <CardDescription>
+                  {result.validation2.name} — experimenteel, niet blokkerend. Alleen inspectie, geen
+                  correcties. De download blijft beschikbaar zolang validatie 1 PASS is.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[11px]">
+                  Experimenteel – niet blokkerend
+                </Badge>
+                <V2Pill status={result.validation2.status} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="divide-y divide-border">
+              {result.validation2.checks.map((check) => (
+                <li key={check.key} className="flex items-start justify-between gap-4 py-2.5">
+                  <div>
+                    <p className="text-sm font-medium">{check.label}</p>
+                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                      {check.key}
+                      {check.detail ? ` · ${check.detail}` : ""}
+                    </p>
+                  </div>
+                  <V2Pill status={check.status} />
+                </li>
+              ))}
+            </ul>
+
+            <div className="rounded-md border border-border p-4 text-xs text-muted-foreground">
+              <p className="mb-1 font-medium text-foreground">Complexiteit (informatief)</p>
+              <p className="font-mono">
+                score {result.validation2.complexity.pdfComplexityScore} · {result.validation2.complexity.fileSizeMb} MB ·
+                pathSegments {result.validation2.complexity.pathSegments} · images{" "}
+                {result.validation2.complexity.imageXObjects} · forms{" "}
+                {result.validation2.complexity.formXObjects}
+              </p>
+              <p className="mt-2">{result.validation2.complexity.note}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </main>
   );
 }
