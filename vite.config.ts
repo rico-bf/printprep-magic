@@ -12,4 +12,14 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    resolve: {
+      alias: {
+        // pdf-lib's ESM build imports tslib helpers in a way that breaks under
+        // CJS/ESM interop ("Cannot destructure property '__extends'").
+        // The prebundled dist ESM file inlines those helpers.
+        "pdf-lib": "pdf-lib/dist/pdf-lib.esm.js",
+      },
+    },
+  },
 });
