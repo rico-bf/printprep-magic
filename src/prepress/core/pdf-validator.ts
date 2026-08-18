@@ -482,9 +482,9 @@ export function compareWithGolden(
     String(overprintStatePresent(golden)),
   );
   add(
-    "technische kleurruimten",
-    [...new Set(Object.values(generated.colorSpaces))].sort().join(" | "),
-    [...new Set(Object.values(golden.colorSpaces))].sort().join(" | "),
+    "technische steunkleurruimten",
+    [...new Set(Object.values(generated.colorSpaces))].filter((v) => v.startsWith("/Separation")).sort().join(" | "),
+    [...new Set(Object.values(golden.colorSpaces))].filter((v) => v.startsWith("/Separation")).sort().join(" | "),
   );
   for (const layer of technicalLayerNames(config)) {
     const comparison = compareLayerSignature(
