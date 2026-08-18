@@ -107,7 +107,7 @@ export interface GoldenComparisonRow {
 export interface LogEntry {
   at: string;
   event: string;
-  data?: Record<string, unknown>;
+  data?: Record<string, string | number | boolean | null>;
 }
 
 /** Boolean summary used in the API response contract. */
