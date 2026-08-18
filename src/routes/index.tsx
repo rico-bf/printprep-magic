@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+// --- optional SleeveManager Validation V2 UI (removable) ---
+import type { V2CheckStatus } from "@/prepress/validation2/sleevemanager-types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,6 +50,20 @@ function StatusPill({ status }: { status: "PASS" | "FAIL" }) {
       {status}
     </Badge>
   );
+}
+
+/** Validation 2 only — experimental, non-blocking. */
+function V2Pill({ status }: { status: V2CheckStatus | "PASS" | "WARNING" | "FAIL" }) {
+  const label = status === "NOT_VERIFIABLE" ? "NIET VAST TE STELLEN" : status;
+  const className =
+    status === "PASS"
+      ? "border-transparent bg-emerald-600 text-white"
+      : status === "FAIL"
+        ? "border-transparent bg-destructive text-destructive-foreground"
+        : status === "WARNING"
+          ? "border-transparent bg-amber-500 text-black"
+          : "border-dashed border-muted-foreground/60 bg-muted text-muted-foreground";
+  return <Badge className={`font-mono text-[11px] ${className}`}>{label}</Badge>;
 }
 
 function Index() {
