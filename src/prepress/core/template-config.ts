@@ -7,8 +7,9 @@ import type { TemplateConfig } from "./types";
 export const CAVA_293X237: TemplateConfig = {
   id: "cava-293x237",
   name: "CAVA – 293 × 237 mm",
-  masterFile: "MASTER_TEMPLATE_CAVA_TEST_v2.pdf",
-  masterStoragePath: "masters/cava-293x237/MASTER_TEMPLATE_CAVA_TEST_v2.pdf",
+  masterFile: "MASTER_TEMPLATE_CAVA_TEST_v3.pdf",
+  masterVersion: "v3",
+  masterStoragePath: "masters/cava-293x237/MASTER_TEMPLATE_CAVA_TEST_v3.pdf",
   layers: {
     dieCut: "Stans (NIET IN WERKEN)",
     dimensions: "Maten (NIET IN WERKEN)",
