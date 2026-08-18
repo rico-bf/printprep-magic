@@ -216,6 +216,8 @@ export function compareLayerSignature(
   expected: LayerSignature | undefined,
   actual: LayerSignature | undefined,
   layer: string,
+  /** Ignore resource key names (used when comparing against an externally produced file). */
+  nameAgnostic = false,
 ): LayerComparison {
   const differences: string[] = [];
   if (!expected) differences.push("laag ontbreekt in master");
@@ -236,18 +238,32 @@ export function compareLayerSignature(
   if (!compareNumberArrays(expected.coordinates, actual.coordinates)) {
     differences.push("coördinaten wijken af");
   }
-  if (expected.resourceNames.join(",") !== actual.resourceNames.join(",")) {
+  if (!nameAgnostic && expected.resourceNames.join(",") !== actual.resourceNames.join(",")) {
     differences.push(
       `resourceverwijzingen wijken af (${expected.resourceNames.join(" ")} vs ${actual.resourceNames.join(" ")})`,
     );
   }
-  if (JSON.stringify(expected.colorSpaces) !== JSON.stringify(actual.colorSpaces)) {
+  const colorValues = (sig: LayerSignature) => Object.values(sig.colorSpaces).sort().join(",");
+  const stateValues = (sig: LayerSignature) =>
+    Object.values(sig.graphicsStates)
+      .map((state) => JSON.stringify(state))
+      .sort()
+      .join(",");
+  if (
+    nameAgnostic
+      ? colorValues(expected) !== colorValues(actual)
+      : JSON.stringify(expected.colorSpaces) !== JSON.stringify(actual.colorSpaces)
+  ) {
     differences.push("kleurruimten wijken af");
   }
-  if (JSON.stringify(expected.graphicsStates) !== JSON.stringify(actual.graphicsStates)) {
+  if (
+    nameAgnostic
+      ? stateValues(expected) !== stateValues(actual)
+      : JSON.stringify(expected.graphicsStates) !== JSON.stringify(actual.graphicsStates)
+  ) {
     differences.push("graphics states wijken af");
   }
-  if (expected.fonts.join(",") !== actual.fonts.join(",")) {
+  if (!nameAgnostic && expected.fonts.join(",") !== actual.fonts.join(",")) {
     differences.push("fontverwijzingen wijken af");
   }
 
@@ -471,7 +487,12 @@ export function compareWithGolden(
     [...new Set(Object.values(golden.colorSpaces))].sort().join(" | "),
   );
   for (const layer of technicalLayerNames(config)) {
-    const comparison = compareLayerSignature(golden.layerSignatures[layer], generated.layerSignatures[layer], layer);
+    const comparison = compareLayerSignature(
+      golden.layerSignatures[layer],
+      generated.layerSignatures[layer],
+      layer,
+      true,
+    );
     rows.push({
       property: `laagcontent ${layer}`,
       matches: comparison.matches,
