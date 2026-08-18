@@ -39,8 +39,8 @@ src/prepress/core/pdf-validator.ts     preflight artwork / master / output + gol
 src/prepress/core/pdf-engine.ts        generatePrintReadyPdf(masterBytes, artworkBytes, templateConfig)
 src/prepress/core/naming.ts            buildOutputFilename() als losse functie
 src/prepress/adapters/storage-adapter.ts     interface + in-memory implementatie
-src/prepress/adapters/master-provider.ts     levert masterbytes aan de core
-src/prepress/masters/cava-293x237.master.ts  master als base64 (ongewijzigde bytes)
+src/prepress/adapters/master-provider.ts     MasterProvider: haalt masterbytes uit private storage
+src/prepress/adapters/supabase-storage-adapter.ts  StorageAdapter op privé bucket (masters + output)
 src/lib/prepress.functions.ts          server function wrapper (API-contract)
 src/prepress/tests/*.test.ts           vitest tests met de drie PDF's als fixtures
 src/routes/index.tsx                   POC-testinterface (Nederlands)
@@ -59,9 +59,13 @@ docs/HANDOFF_LARAVEL_LUNAR.md          overdrachtsdocument
 
 ## Validatie na generatie (output opnieuw inlezen)
 
-De gegenereerde bytes worden opnieuw geparseerd: geldig PDF, 1 pagina, paginaformaat, 4 OCG's + exacte namen + volgorde, ON/OFF per laag, `/Separation /White`, `OP=true`/`op=true`/`OPM=1`, artworkcontent aanwezig, artwork gekoppeld aan de Artwork-OCG, transformmatrix exact identiteit (geen scaling), en byte-identieke aanwezigheid van de Stans/Maten/Wit-contentblokken uit de master. Elke kritieke check die faalt = FAIL, geen download.
+De gegenereerde bytes worden opnieuw geparseerd: geldig PDF, exact 1 pagina, paginaformaat, 4 OCG's + exacte namen + volgorde, ON/OFF per laag, `/Separation /White`, `OP=true`/`op=true`/`OPM=1`, artworkcontent aanwezig, artwork gekoppeld aan de Artwork-OCG, transformmatrix exact identiteit (geen scaling).
 
-Daarnaast een semantische golden-reference-vergelijking met `Sleeve-Cava-Expivi.pdf` (geen hash): eigenschap-voor-eigenschap PASS/afwijking in het rapport.
+De Stans/Maten/Wit-lagen worden **semantisch** gevalideerd (geen byte-vergelijking): per laagblok wordt de gedecodeerde contentstream genormaliseerd en vergeleken met de master op operatorreeks, coördinaten (numerieke tolerantie), gebruikte resources (ColorSpace-, ExtGState-, Font-verwijzingen), de bijbehorende OCG-koppeling, kleurruimten/kleurwaarden (o.a. `/Separation /White`, `/Info`, `/Stans`) en graphics states (`OP`, `op`, `OPM`, `BM`, `SMask`, `CA`, `ca`). Verschillen worden per eigenschap gerapporteerd.
+
+Extra kritieke check: het outputdocument bevat **exact vier** OCG's — de artwork-eigen OCG `Laag 1` mag niet als vijfde OCG in `/OCProperties` (`/OCGs`, `/Order`, `/ON`, `/OFF`) of als losse `/OC`-verwijzing voorkomen. Zo niet: FAIL.
+
+Elke kritieke check die faalt = FAIL, geen download.
 
 Als pdf-lib bij verificatie aantoonbaar iets sloopt (OCG's, White Separation, overprint), wordt dat als `TECHNICAL FAIL` met de exacte eigenschap gerapporteerd — niet verborgen en niet opgelost met rasteren of flattenen. Het alternatief zou dan een minimale incremental-update writer zijn (append-only, master-bytes onaangeroerd); dat meld ik eerst voordat ik het bouw.
 
@@ -69,17 +73,25 @@ Als pdf-lib bij verificatie aantoonbaar iets sloopt (OCG's, White Separation, ov
 
 `POST /api/prepress/generate`, `multipart/form-data` met `template_id` en `artwork`. Response exact zoals gespecificeerd (`success`, `status`, `template_id`, `output_filename`, `validation{...}`, `download_url`), bij fout `errors[{code,message}]` met vaste codes. Naamgeving: `Sleeve-Cava-Expivi-alleen_artwork.pdf` -> `Sleeve-Cava-Expivi-DRUKKLAAR.pdf`.
 
-## Opslag (standaardkeuze fase 1)
+## Opslag
 
-Geen Lovable Cloud nodig: de output gaat via de in-memory storage adapter als base64 terug in de response en de browser biedt de download aan. De `StorageAdapter`-interface staat er al, zodat privé Supabase Storage of Laravel Filesystem/S3 er later zonder core-wijziging onder kan. Wil je meteen privé cloud-storage, dan bouw ik die adapter erbij.
+Lovable Cloud wordt ingeschakeld met één **privé** bucket (`prepress`), met paden `masters/` en `output/`.
+
+- De master (`MASTER_TEMPLATE_CAVA_TEST_v2.pdf`) wordt in `masters/cava-293x237/` gezet en uitsluitend via de `MasterProvider` opgehaald; geen base64-module in de codebase.
+- De gegenereerde PDF wordt via de `StorageAdapter` privé opgeslagen onder `output/`. De API retourneert een tijdelijke signed download-URL (geldig ca. 15 minuten), geen base64-payload.
+- Core en engine kennen alleen de `StorageAdapter`/`MasterProvider`-interfaces; Laravel kan hier later Filesystem/S3 onder hangen.
 
 ## UI
 
 Eén pagina `Automatisch drukklaar maken – POC`, Nederlands, functioneel: template `CAVA – 293 × 237 mm`, dropzone, preflightresultaat, knop `DRUKKLAAR MAKEN`, daarna `VALIDATIERAPPORT` met alle checks, `STATUS: PASS`/`FAIL`, en alleen bij PASS `DOWNLOAD DRUKKLAAR PDF`. Plus een blok technische logging.
 
+## Golden reference
+
+`Sleeve-Cava-Expivi.pdf` wordt **uitsluitend** in de POC/testsuite gebruikt als semantische vergelijkingsbron (rapportage van overeenkomsten/afwijkingen). Het is géén onderdeel van de productie-preflight: de runtime-validatie draait volledig op master + output, zodat productie geen golden reference nodig heeft.
+
 ## Tests (vitest)
 
-correct artwork -> PASS; afwijkend paginaformaat -> FAIL; meerdere pagina's -> FAIL; niet-PDF -> FAIL; master zonder vereiste laag -> FAIL; master zonder White Separation -> FAIL; master zonder overprint-ExtGState -> FAIL. Fixtures: de drie aangeleverde PDF's, negatieve gevallen afgeleid van de master.
+correct artwork -> PASS; afwijkend paginaformaat -> FAIL; meerdere pagina's -> FAIL; niet-PDF -> FAIL; master zonder vereiste laag -> FAIL; master zonder White Separation -> FAIL; master zonder overprint-ExtGState -> FAIL; output met vijfde OCG (`Laag 1`) -> FAIL. Plus de golden-reference-vergelijkingstest. Fixtures: de drie aangeleverde PDF's, negatieve gevallen afgeleid van de master.
 
 ## Daarna stoppen
 
