@@ -110,6 +110,10 @@ interface ColorSpaceInfo {
   isRgb: boolean;
   /** Derived alternate colour at tint 1.0, when reliably computable. */
   alternateHex?: string;
+  /** Alternate colour space family of a Separation/DeviceN. */
+  alternateFamily?: string;
+  /** Raw tint transform output at tint 1.0. */
+  alternateTint?: number[];
   alternateVerifiable: boolean;
 }
 
@@ -180,9 +184,14 @@ function resolveColorSpace(doc: PDFDocument, value: unknown, depth = 0): ColorSp
     const alt = resolveColorSpace(doc, array.get(2), depth + 1);
     const tint = tintAtOne(doc, array.get(3));
     let alternateHex: string | undefined;
+    // Only an RGB alternate space yields a device-independent hex we can trust.
+    // A CMYK alternate needs an ICC profile (Illustrator uses the document
+    // profile), so its naive conversion is reported as indicative only.
+    let verifiable = false;
     if (tint) {
       if ((alt.family === "DeviceRGB" || alt.family === "ICCBased RGB") && tint.length >= 3) {
         alternateHex = hex(tint.slice(0, 3).map((v) => v * 255));
+        verifiable = true;
       } else if ((alt.family === "DeviceCMYK" || alt.family === "ICCBased CMYK") && tint.length >= 4) {
         alternateHex = hex(cmykToRgb(tint[0]!, tint[1]!, tint[2]!, tint[3]!));
       }
@@ -193,7 +202,9 @@ function resolveColorSpace(doc: PDFDocument, value: unknown, depth = 0): ColorSp
       colorants,
       isRgb: false,
       ...(alternateHex ? { alternateHex } : {}),
-      alternateVerifiable: alternateHex !== undefined,
+      ...(alt.family !== "?" ? { alternateFamily: alt.family } : {}),
+      ...(tint ? { alternateTint: tint } : {}),
+      alternateVerifiable: verifiable,
     };
   }
   if (family === "Lab" || family === "CalRGB") {
